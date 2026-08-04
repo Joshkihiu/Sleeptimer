@@ -1,8 +1,8 @@
-# 🌙 Screen Off Timer
+# Screen Off Timer
 
 A sleek, native-feeling Android utility designed to turn off your screen and lock your device based on time, exact clock hours, or battery drain. Built with a dark, minimalist aesthetic and an intuitive floating picture-in-picture (PiP) widget.
 
-## ⬇️ Download & Install
+## Download & Install
 
 Grab the **release-signed APK** straight from this repo and sideload it:
 
@@ -18,15 +18,15 @@ The APK is signed with a proper release certificate (not a debug key), so Google
 2. Enable **Device Admin** (Settings → Device Admin) so the screen can auto-lock at zero.
 3. Scroll a mode and leave the app — the timer starts automatically.
 
-## ✨ Core Features
+## Core Features
 
 The app features three independent triggers. Whichever threshold is reached first will trigger the screen off/device lock event.
 
-* **⏳ Timer Mode:** A standard duration countdown (1 - 120 minutes). 
-* **⏰ Sleep At Mode:** An exact target time selector (Hours and Minutes). Perfect for setting a hard cutoff time at night.
-* **🔋 Battery Mode (Kill-Switch):** A dynamic scroll wheel that live-tracks your current battery percentage. Sets a hard floor (e.g., 15%) so you never wake up to a dead phone if you fall asleep watching a stream.
+* ** Timer Mode:** A standard duration countdown (1 - 120 minutes). 
+* ** Sleep At Mode:** An exact target time selector (Hours and Minutes). Perfect for setting a hard cutoff time at night.
+* ** Battery Mode (Kill-Switch):** A dynamic scroll wheel that live-tracks your current battery percentage. Sets a hard floor (e.g., 15%) so you never wake up to a dead phone if you fall asleep watching a stream.
 
-## 🎛️ UI & Layout
+##  UI & Layout
 
 The main app view utilizes a strict **30/50/20** vertical flex layout to prioritize touch targets based on usage frequency:
 * **Top (30%):** Timer Mode
@@ -35,7 +35,7 @@ The main app view utilizes a strict **30/50/20** vertical flex layout to priorit
 
 *Note: All scroll wheels feature a synthesized haptic audio "tick" when snapping to a new number to mimic native mechanical components.*
 
-## 🕹️ The Floating Widget (Overlay)
+##  The Floating Widget (Overlay)
 
 When the timer is started (via the System Home button), the app drops into the background and spawns a draggable floating pill widget.
 
@@ -48,7 +48,7 @@ When the timer is started (via the System Home button), the app drops into the b
   * **Drag to the right** to dynamically add time to the running clock (+1 minute per 10 pixels dragged).
   * Release to snap back and commit the new time.
 
-## 🎨 App Icon Generator
+## App Icon Generator
 
 Tap the palette icon in the header to open the built-in icon studio. It generates the app icon **entirely on-device** with the canvas API — no external assets or image files needed.
 
@@ -89,7 +89,7 @@ adb shell dumpsys deviceidle whitelist +com.thetimep.screentimer          # batt
 
 Device Admin is granted from the app (Permissions → Device Admin) so the screen can be force-locked at zero.
 
-## �🔐 Required Android Permissions
+## � Required Android Permissions
 
 To fully implement this in a native Android environment (Kotlin/Java or Flutter/React Native), the following permissions are mapped out in the Settings menu:
 
@@ -97,7 +97,7 @@ To fully implement this in a native Android environment (Kotlin/Java or Flutter/
 2. **Device Admin (`BIND_DEVICE_ADMIN`):** Required to actively force the screen to turn off and lock the device when the timer hits zero without requiring root access.
 3. **Ignore Battery Optimization (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`):** Prevents the Android OS from killing the background timer service while the user is passively watching content.
 
-## 🚀 Development Notes
+##  Development Notes
 
 * **Current Status:** Native Android app (Java/Gradle) is built and installed on-device; the HTML/CSS/JS file (`index.html`) remains as the high-fidelity design reference.
 * **New:** In-app App Icon Generator in the web prototype (canvas-based, theme presets, PNG export, auto-favicon).
