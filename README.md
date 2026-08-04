@@ -61,8 +61,8 @@ Tap the palette icon in the header to open the built-in icon studio. It generate
 
 The idea from this README is now implemented as a **real, installed Android app** (Java, built with Gradle) living in the `android/` folder:
 
-* **Modes:** Timer (1–120 min), Sleep At (HH:MM), and Battery kill-switch (1–100%) — same three triggers as the prototype.
-* **Auto-start on leave:** there is no Start button — simply scroll a mode and leave the app (Home / app switch); the timer starts automatically, exactly like the prototype's system-Home button. The three modes (Timer / Sleep At / Battery) are mutually exclusive — selecting one dims the others. The header ▶ play button starts/stops it manually, and **Settings** has a *Start timer on exit* toggle (default ON) and a *Tick sound* toggle (default ON) for the soft wheel-snap tick.
+* **Modes:** Timer (1–120 min), Sleep At (HH:MM), and Battery kill-switch (1–100%) — same three triggers as the prototype. Battery mode shows a **live percentage countdown** (e.g. `65%`) on the widget and notification until the floor is hit.
+* **Auto-start on leave:** there is no Start button — simply scroll a mode and leave the app (Home / app switch); the timer starts automatically, exactly like the prototype's system-Home button. The three modes (Timer / Sleep At / Battery) are mutually exclusive — selecting one dims the others. The header ▶ play button starts/stops it manually, and **Settings** has a *Start timer on exit* toggle (default ON).
 * **Foreground service** (`TimerService`) runs the countdown with a live notification (with a Stop action) and battery check.
 * **Floating widget** (`OverlayView`) — draggable pill shown over other apps; drag to move, double-tap + drag right to extend time (+1 min / 10px), ghost-dims after 5s idle.
 * **Screen-off** via `DevicePolicyManager.lockNow()` when time is up or the battery floor is hit (no root). If Device Admin isn't active, the app posts a notification explaining why the screen couldn't lock.
