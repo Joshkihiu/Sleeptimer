@@ -6,7 +6,9 @@ A sleek, native-feeling Android utility designed to turn off your screen and loc
 
 Grab the **release-signed APK** straight from this repo and sideload it:
 
-**Download:** [`SleepTimer.apk`](./SleepTimer.apk)
+**Download (v1.0):** [SleepTimer.apk](https://github.com/Joshkihiu/Sleeptimer/releases/download/v1.0/SleepTimer.apk)
+
+See the [Releases page](https://github.com/Joshkihiu/Sleeptimer/releases) for the latest version (downloads are counted there).
 
 ```bash
 # or via adb
