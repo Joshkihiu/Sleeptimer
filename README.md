@@ -57,7 +57,7 @@ Tap the palette icon in the header to open the built-in icon studio. It generate
 * **Export:** Download as PNG at 256, 512, or 1024 px — ready to drop into a native Android `mipmap` set.
 * **Bonus:** The generated icon is automatically set as the page favicon on load, and you can re-apply it from the studio with one tap.
 
-## � Native Android App (`android/`)
+##  Native Android App (`android/`)
 
 The idea from this README is now implemented as a **real, installed Android app** (Java, built with Gradle) living in the `android/` folder:
 
@@ -89,7 +89,7 @@ adb shell dumpsys deviceidle whitelist +com.thetimep.screentimer          # batt
 
 Device Admin is granted from the app (Permissions → Device Admin) so the screen can be force-locked at zero.
 
-## � Required Android Permissions
+##  Required Android Permissions
 
 To fully implement this in a native Android environment (Kotlin/Java or Flutter/React Native), the following permissions are mapped out in the Settings menu:
 
