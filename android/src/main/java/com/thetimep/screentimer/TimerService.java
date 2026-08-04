@@ -61,11 +61,11 @@ public class TimerService extends Service {
                 return;
             }
             long remainingSec = getRemainingSec();
-            if (remainingSec <= 0 && pendingExtendSec == 0) {
+            if (mode != MODE_BATTERY && remainingSec <= 0 && pendingExtendSec == 0) {
                 finish(true);
                 return;
             }
-            updateUi(remainingSec);
+            updateUi();
             handler.postDelayed(this, 1000);
         }
     };
@@ -136,7 +136,7 @@ public class TimerService extends Service {
             batteryThreshold = intent.getIntExtra(EXTRA_BATTERY, 0);
         }
         running = true;
-        startForeground(NOTIF_ID, buildNotification(getRemainingSec()));
+        startForeground(NOTIF_ID, buildNotification(displayText()));
         showOverlay();
         handler.removeCallbacks(ticker);
         handler.post(ticker);
@@ -157,14 +157,23 @@ public class TimerService extends Service {
 
     // ---------- helpers ----------
 
-    private void updateUi(long remainingSec) {
+    private String displayText() {
+        if (mode == MODE_BATTERY) {
+            int level = getBatteryLevel();
+            return level >= 0 ? level + "%" : "--%";
+        }
+        return formatTime(getRemainingSec());
+    }
+
+    private void updateUi() {
+        String text = displayText();
         if (notificationManager != null) {
             try {
-                notificationManager.notify(NOTIF_ID, buildNotification(remainingSec));
+                notificationManager.notify(NOTIF_ID, buildNotification(text));
             } catch (Exception ignored) {
             }
         }
-        if (overlayRef != null) overlayRef.updateText(formatTime(remainingSec));
+        if (overlayRef != null) overlayRef.updateText(text);
     }
 
     private void finish(boolean shouldLock) {
@@ -221,7 +230,7 @@ public class TimerService extends Service {
         overlayParams.x = dp(16);
         overlayParams.y = dp(120);
         overlayView.attach(windowManager, overlayParams);
-        overlayView.updateText(formatTime(getRemainingSec()));
+        overlayView.updateText(displayText());
         try {
             windowManager.addView(overlayView, overlayParams);
         } catch (Exception ignored) {
@@ -240,7 +249,7 @@ public class TimerService extends Service {
         }
     }
 
-    private Notification buildNotification(long remainingSec) {
+    private Notification buildNotification(String text) {
         Intent i = new Intent(this, MainActivity.class);
         PendingIntent pi = PendingIntent.getActivity(this, 0, i,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
@@ -248,7 +257,11 @@ public class TimerService extends Service {
                 ? new Notification.Builder(this, CHANNEL_ID)
                 : new Notification.Builder(this);
         b.setContentTitle(getString(R.string.running_notif_title));
-        b.setContentText(getString(R.string.running_notif_text, formatTime(remainingSec)));
+        if (mode == MODE_BATTERY) {
+            b.setContentText(getString(R.string.running_notif_battery, batteryThreshold, text));
+        } else {
+            b.setContentText(getString(R.string.running_notif_text, text));
+        }
         b.setSmallIcon(R.drawable.ic_stat_timer);
         b.setContentIntent(pi);
         b.setOngoing(true);

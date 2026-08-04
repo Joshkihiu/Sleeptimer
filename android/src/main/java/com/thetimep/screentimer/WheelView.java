@@ -6,9 +6,6 @@ import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Shader;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -50,8 +47,6 @@ public class WheelView extends View {
     private float lastTouchY;
     private OnItemSelectedListener listener;
     private Runnable onTouchDown;
-    private boolean tickEnabled = false;
-    private AudioTrack tickTrack;
 
     public WheelView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -82,34 +77,6 @@ public class WheelView extends View {
     /** Fired on every ACTION_DOWN so the parent can activate this wheel's mode. */
     public void setOnTouchDownListener(Runnable r) { onTouchDown = r; }
 
-    public void setTickSoundEnabled(boolean on) { tickEnabled = on; }
-
-    /** Soft sine tick like the web prototype's synthesized haptic audio. */
-    private void playTick() {
-        if (!tickEnabled) return;
-        if (tickTrack == null) {
-            try {
-                int sampleRate = 44100;
-                int dur = 55;
-                int n = sampleRate * dur / 1000;
-                short[] buf = new short[n];
-                for (int i = 0; i < n; i++) {
-                    double t = (double) i / sampleRate;
-                    double env = Math.exp(-t * 85.0);
-                    buf[i] = (short) (Math.sin(2 * Math.PI * 1000 * t) * env * 15000);
-                }
-                tickTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate,
-                        AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT,
-                        n * 2, AudioTrack.MODE_STATIC);
-                tickTrack.write(buf, 0, buf.length);
-            } catch (Exception ignored) {}
-        }
-        try {
-            tickTrack.setPlaybackHeadPosition(0);
-            tickTrack.play();
-        } catch (Exception ignored) {}
-    }
-
     private void updateSelection() {
         if (items.isEmpty()) return;
         int idx = Math.round(scrollY / itemHeight);
@@ -117,7 +84,6 @@ public class WheelView extends View {
         if (idx != selectedIndex) {
             selectedIndex = idx;
             if (listener != null) listener.onItemSelected(idx);
-            playTick();
             invalidate();
         }
     }
@@ -235,7 +201,6 @@ public class WheelView extends View {
         if (selectedIndex != target) {
             selectedIndex = target;
             if (listener != null) listener.onItemSelected(target);
-            playTick();
             invalidate();
         }
     }

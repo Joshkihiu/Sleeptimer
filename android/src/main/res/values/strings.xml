@@ -23,8 +23,6 @@
     <string name="settings_title">Settings</string>
     <string name="auto_start_label">Start timer on exit</string>
     <string name="auto_start_desc">Start the timer automatically when you leave the app.</string>
-    <string name="tick_sound_label">Tick sound</string>
-    <string name="tick_sound_desc">Play a soft tick when a wheel snaps to a number.</string>
     <string name="onboard_title">Welcome to Sleep Timer</string>
     <string name="onboard_desc">To turn your screen off automatically, Sleep Timer needs a few permissions.</string>
     <string name="onboard_grant">Grant</string>
@@ -42,6 +40,7 @@
     <string name="open">Open</string>
     <string name="running_notif_title">Sleep Timer running</string>
     <string name="running_notif_text">Screen will turn off in %1$s</string>
+    <string name="running_notif_battery">Screen will turn off at %1$d%% — now %2$s</string>
     <string name="toast_started">Timer started</string>
     <string name="toast_stopped">Timer stopped</string>
     <string name="toast_overlay_required">Please grant overlay permission for the floating widget.</string>

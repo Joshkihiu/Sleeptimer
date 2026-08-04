@@ -31,13 +31,12 @@ public class MainActivity extends Activity {
     private WheelView wheelDuration, wheelH, wheelM, wheelBattery;
     private ImageButton btnPlay;
     private View permissionsView;
-    private Switch swOverlay, swNotify, swBattery, swAdmin, swAutoStart, swTick;
+    private Switch swOverlay, swNotify, swBattery, swAdmin, swAutoStart;
     private TextView stOverlay, stNotify, stBattery, stAdmin;
     private boolean suppressAutoStart = false;
 
     private static final String PREFS = "screentimer_prefs";
     private static final String KEY_AUTO_START = "auto_start_on_exit";
-    private static final String KEY_TICK_SOUND = "tick_sound";
     private SharedPreferences prefs;
 
     private String activeMode = "timer";
@@ -117,17 +116,10 @@ public class MainActivity extends Activity {
 
         // --- general settings ---
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        applyTickSound(prefs.getBoolean(KEY_TICK_SOUND, true));
 
         swAutoStart = findViewById(R.id.swAutoStart);
-        swTick = findViewById(R.id.swTick);
         swAutoStart.setChecked(prefs.getBoolean(KEY_AUTO_START, true));
         swAutoStart.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean(KEY_AUTO_START, c).apply());
-        swTick.setChecked(prefs.getBoolean(KEY_TICK_SOUND, true));
-        swTick.setOnCheckedChangeListener((b, c) -> {
-            prefs.edit().putBoolean(KEY_TICK_SOUND, c).apply();
-            applyTickSound(c);
-        });
 
         setMode("timer");
     }
@@ -138,7 +130,6 @@ public class MainActivity extends Activity {
         suppressAutoStart = false;
         refreshBattery();
         refreshBatteryWheel();
-        if (prefs != null) applyTickSound(prefs.getBoolean(KEY_TICK_SOUND, true));
         refreshPermissions();
         refreshRunningUi();
     }
@@ -204,7 +195,7 @@ public class MainActivity extends Activity {
         } else {
             m = TimerService.MODE_BATTERY;
             battery = wheelBattery.getSelectedIndex() + 1;
-            end = System.currentTimeMillis() + 12L * 60L * 60L * 1000L; // max 12h guard, battery triggers first
+            end = System.currentTimeMillis() + 30L * 24L * 60L * 60L * 1000L; // battery-only: no time finish
         }
 
         if (userInitiated) {
@@ -309,13 +300,6 @@ public class MainActivity extends Activity {
     private void setStatus(TextView status, boolean granted) {
         status.setText(granted ? R.string.status_granted : R.string.status_denied);
         status.setTextColor(granted ? 0xFF00E676 : 0xFFFF4D4D);
-    }
-
-    private void applyTickSound(boolean on) {
-        if (wheelDuration != null) wheelDuration.setTickSoundEnabled(on);
-        if (wheelH != null) wheelH.setTickSoundEnabled(on);
-        if (wheelM != null) wheelM.setTickSoundEnabled(on);
-        if (wheelBattery != null) wheelBattery.setTickSoundEnabled(on);
     }
 
     // ---------- settings intents ----------
