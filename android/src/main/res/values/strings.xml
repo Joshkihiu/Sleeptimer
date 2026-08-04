@@ -40,7 +40,7 @@
     <string name="open">Open</string>
     <string name="running_notif_title">Sleep Timer running</string>
     <string name="running_notif_text">Screen will turn off in %1$s</string>
-    <string name="running_notif_battery">Screen will turn off at %1$d%% — now %2$s</string>
+    <string name="running_notif_battery">Screen will turn off at %1$d%% — %2$s%% to go</string>
     <string name="toast_started">Timer started</string>
     <string name="toast_stopped">Timer stopped</string>
     <string name="toast_overlay_required">Please grant overlay permission for the floating widget.</string>

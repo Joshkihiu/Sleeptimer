@@ -160,7 +160,10 @@ public class TimerService extends Service {
     private String displayText() {
         if (mode == MODE_BATTERY) {
             int level = getBatteryLevel();
-            return level >= 0 ? level + "%" : "--%";
+            if (level < 0) return "--";
+            // Count down the points left until the floor: 60 - 50 = 10, 9, 8...
+            int remaining = level - batteryThreshold;
+            return String.valueOf(Math.max(0, remaining));
         }
         return formatTime(getRemainingSec());
     }
