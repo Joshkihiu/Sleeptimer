@@ -2,6 +2,22 @@
 
 A sleek, native-feeling Android utility designed to turn off your screen and lock your device based on time, exact clock hours, or battery drain. Built with a dark, minimalist aesthetic and an intuitive floating picture-in-picture (PiP) widget.
 
+## ⬇️ Download & Install
+
+Grab the **release-signed APK** straight from this repo and sideload it:
+
+**Download:** [`SleepTimer.apk`](./SleepTimer.apk)
+
+```bash
+# or via adb
+adb install SleepTimer.apk
+```
+
+The APK is signed with a proper release certificate (not a debug key), so Google Play Protect won't flag it as potentially harmful. After installing:
+1. Open the app and grant the requested permissions.
+2. Enable **Device Admin** (Settings → Device Admin) so the screen can auto-lock at zero.
+3. Scroll a mode and leave the app — the timer starts automatically.
+
 ## ✨ Core Features
 
 The app features three independent triggers. Whichever threshold is reached first will trigger the screen off/device lock event.
