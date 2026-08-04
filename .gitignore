@@ -1,0 +1,12 @@
+# Android / Gradle
+android/.gradle/
+android/build/
+android/local.properties
+android/keystore/
+android/keystore.properties
+android/.idea/
+*.iml
+
+# OS / editor
+.DS_Store
+.vscode/

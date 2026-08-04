@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Off Timer UI - V14</title>
+<style>
+  :root {
+    --bg-color: #121212;
+    --bg-alt: #1a1a1a;
+    --accent: #ffffff;
+    --text-main: #ffffff;
+    --text-muted: #666666;
+    --success: #00e676; 
+  }
+
+  body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #000;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-main);
+  }
+
+  /* Mock Mobile Device */
+  #device {
+    width: 375px;
+    height: 812px;
+    background-color: var(--bg-color);
+    border-radius: 40px;
+    box-shadow: 0 0 20px rgba(255,255,255,0.1);
+    position: relative;
+    overflow: hidden;
+    border: 8px solid #333;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* --- VIEWS CONTAINER --- */
+  #screen-content {
+    position: relative;
+    flex-grow: 1;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .view-container {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+  }
+
+  #app-view { padding: 30px 20px 10px 20px; z-index: 1; }
+  
+  #permissions-view { 
+    padding: 30px 20px; 
+    background-color: var(--bg-alt); 
+    z-index: 2; 
+    transform: translateX(100%); 
+  }
+
+  #home-screen {
+    background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+    display: none; z-index: 10;
+  }
+
+  /* --- MOCK SYSTEM NAV BAR --- */
+  #system-navbar {
+    height: 48px;
+    width: 100%;
+    background-color: #000;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 999;
+    flex-shrink: 0;
+  }
+  
+  .nav-btn {
+    background: none; border: none; color: #fff;
+    font-size: 1.5rem; cursor: pointer; opacity: 0.6;
+    transition: opacity 0.2s, transform 0.1s;
+    padding: 10px 20px;
+  }
+  .nav-btn:active { opacity: 1; transform: scale(0.9); }
+
+  /* --- HEADER --- */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 1.2rem; margin: 0; font-weight: 600; }
+  .icon-btn { 
+    background: none; border: none; color: var(--text-main); 
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    padding: 5px; opacity: 0.8; transition: opacity 0.2s;
+  }
+  .icon-btn:hover { opacity: 1; }
+  .icon-btn svg { width: 24px; height: 24px; }
+
+  /* --- 30/50/20 RATIO LAYOUT --- */
+  #sections-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    width: 100%;
+    min-height: 0;
+  }
+
+  .timer-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    opacity: 0.3; /* Default inactive state */
+    transition: opacity 0.3s ease;
+  }
+
+  /* The flex ratios */
+  #section-duration { flex: 3; }
+  #section-exact { flex: 5; }
+  #section-battery { flex: 2; }
+
+  .timer-section.active {
+    opacity: 1;
+  }
+
+  .section-label {
+    font-size: 0.8rem; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 5px; text-align: center; font-weight: bold;
+    flex-shrink: 0;
+    cursor: pointer;
+    padding: 5px 0;
+  }
+
+  /* --- WHEEL CONTAINERS --- */
+  .wheel-container {
+    display: flex; 
+    position: relative;
+    flex-grow: 1; 
+    min-height: 0;
+    mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+  }
+  
+  .wheel-column {
+    flex: 1; 
+    position: relative; 
+    min-height: 0;
+  }
+
+  .wheel-label-top {
+    position: absolute; top: 0px; width: 100%; text-align: center;
+    font-size: 0.85rem; font-weight: bold; color: #fff; z-index: 2; pointer-events: none;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+  }
+
+  .selection-highlight {
+    position: absolute; top: 50%; left: 10%; right: 10%; height: 50px;
+    transform: translateY(-50%); background: rgba(255,255,255,0.08);
+    border-radius: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .wheel {
+    position: absolute; 
+    top: 0; left: 0; width: 100%; height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory; 
+    scrollbar-width: none; 
+    display: block; 
+  }
+  .wheel::-webkit-scrollbar { display: none; } 
+
+  .wheel-spacer {
+    height: calc(50% - 25px);
+    width: 100%;
+  }
+
+  .wheel-item {
+    height: 50px; display: flex; justify-content: center; align-items: center;
+    font-size: 2.2rem; scroll-snap-align: center; color: var(--text-muted);
+    transition: color 0.15s, transform 0.15s; font-weight: 300;
+  }
+
+  .current-bat-tag {
+    font-size: 0.75rem;
+    color: var(--success);
+    margin-left: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  /* --- PERMISSIONS PAGE STYLES --- */
+  .perm-item {
+    background: var(--bg-color); padding: 15px 20px; border-radius: 15px; margin-bottom: 15px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .perm-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px; font-weight: bold; font-size: 1.05rem;
+  }
+  .perm-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+  .perm-status { font-size: 0.8rem; color: #ff4d4d; margin-top: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+  .perm-status.granted { color: #ffffff; }
+
+  /* Toggles */
+  .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
+  .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: #aaa; transition: .4s; border-radius: 50%; }
+  input:checked + .slider { background-color: var(--accent); }
+  input:checked + .slider:before { background-color: #000; transform: translateX(22px); }
+
+  /* --- FLOATING WIDGET (Home Screen) --- */
+  #widget-shell {
+    position: absolute; width: 90px; height: 44px;
+    background: rgba(255, 255, 255, 0.05); border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 22px; display: none; justify-content: center; align-items: center;
+    pointer-events: none; z-index: 11;
+  }
+  #shell-time { font-size: 1.1rem; font-weight: bold; color: rgba(255, 255, 255, 0.5); }
+  #floating-widget {
+    position: absolute; top: 100px; left: 20px; width: 90px; height: 44px;
+    box-sizing: border-box; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(10px);
+    border-radius: 22px; display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.2);
+    cursor: grab; user-select: none; touch-action: none; z-index: 12;
+    transition: opacity 0.5s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  #floating-widget.no-transition { transition: opacity 0.5s ease; }
+  #floating-widget.ghost { opacity: 0.15; border-color: rgba(255,255,255,0.05); }
+  .widget-timer { font-size: 1.2rem; font-weight: bold; color: var(--accent); pointer-events: none; }
+
+  /* --- APP ICON GENERATOR --- */
+  #icon-view {
+    padding: 25px 20px 40px 20px;
+    background-color: var(--bg-alt);
+    z-index: 2;
+    transform: translateX(100%);
+    overflow-y: auto;
+  }
+  .icon-preview-wrap {
+    display: flex; justify-content: center; margin: 10px 0 20px 0;
+  }
+  #icon-canvas {
+    width: 210px; height: 210px;
+    border-radius: 18px;
+    background: #000;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .icon-controls { display: flex; flex-direction: column; gap: 14px; }
+  .icon-label {
+    font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 1px; font-weight: bold;
+  }
+  .theme-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .theme-btn {
+    width: 48px; height: 48px; border-radius: 13px; border: 2px solid transparent;
+    cursor: pointer; padding: 3px; background: var(--bg-color);
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .theme-btn.active { border-color: var(--accent); transform: scale(1.08); }
+  .theme-swatch { width: 100%; height: 100%; border-radius: 9px; display: block; }
+  .size-row { display: flex; gap: 8px; }
+  .size-btn {
+    flex: 1; padding: 10px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+    background: var(--bg-color); color: var(--text-main); font-weight: bold; font-size: 0.9rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .size-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .download-btn {
+    padding: 14px 0; border-radius: 14px; border: none; cursor: pointer;
+    background: var(--accent); color: #000; font-weight: bold; font-size: 1rem;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .download-btn:active { transform: scale(0.97); }
+  .download-btn.secondary {
+    background: rgba(255,255,255,0.08); color: var(--text-main);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .icon-hint {
+    font-size: 0.78rem; color: var(--text-muted); text-align: center; line-height: 1.5; margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<div id="device">
+  <div id="screen-content">
+    
+    <!-- APP VIEW -->
+    <div id="app-view" class="view-container">
+      <header>
+        <h1>Sleep Timer</h1>
+        <button class="icon-btn" id="open-icon-btn" title="Generate App Icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22a10 10 0 1 1 10-10c0 1.16-.84 2-2 2h-2.5a2.5 2.5 0 0 0-2.5 2.5c0 .61.22 1.16.58 1.6.37.44.62 1 .62 1.66 0 1.24-.98 2.24-2.2 2.24z"></path>
+            <circle cx="7.5" cy="11.5" r="1"></circle>
+            <circle cx="11" cy="7.5" r="1"></circle>
+            <circle cx="16" cy="9" r="1"></circle>
+          </svg>
+        </button>
+        <button class="icon-btn" id="open-settings-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </header>
+      
+      <!-- 30/50/20 WRAPPER -->
+      <div id="sections-wrapper">
+        
+        <!-- DURATION SECTION (30%) -->
+        <div class="timer-section active" id="section-duration">
+          <div class="section-label">Timer Mode</div>
+          <div class="wheel-container">
+            <div class="selection-highlight"></div>
+            <div class="wheel-column">
+              <div class="wheel-label-top">Mins</div>
+              <div class="wheel" id="wheel-duration"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXACT TIME SECTION (50%) -->
+        <div class="timer-section" id="section-exact">
+          <div class="section-label">Sleep At Mode</div>
+          <div class="wheel-container">
+            <div class="selection-highlight"></div>
+            <div class="wheel-column">
+              <div class="wheel-label-top">H</div>
+              <div class="wheel" id="wheel-h"></div>
+            </div>
+            <div class="wheel-column">
+              <div class="wheel-label-top">m</div>
+              <div class="wheel" id="wheel-m"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BATTERY SECTION (20%) -->
+        <div class="timer-section" id="section-battery">
+          <div class="section-label" id="battery-label" title="Tap to Toggle Battery Limit">Off at Battery %</div>
+          <div class="wheel-container">
+            <div class="selection-highlight"></div>
+            <div class="wheel-column">
+              <div class="wheel" id="wheel-battery"></div>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+
+    <!-- PERMISSIONS VIEW -->
+    <div id="permissions-view" class="view-container">
+      <header>
+        <h1 style="flex-grow: 1; text-align: center;">App Permissions</h1>
+      </header>
+
+      <div class="perm-item">
+        <div class="perm-header">
+          <span>Display Over Apps</span>
+          <label class="switch">
+            <input type="checkbox" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="perm-desc">Required to show the floating timer widget over your games or videos.</div>
+        <div class="perm-status granted">Granted</div>
+      </div>
+
+      <div class="perm-item">
+        <div class="perm-header">
+          <span>Device Admin</span>
+          <label class="switch">
+            <input type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="perm-desc">Required to actively lock the phone and turn off the screen when the timer hits zero.</div>
+        <div class="perm-status">Not Granted</div>
+      </div>
+
+      <div class="perm-item">
+        <div class="perm-header">
+          <span>Ignore Battery Opt.</span>
+          <label class="switch">
+            <input type="checkbox" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="perm-desc">Prevents the system from killing the background timer while you are watching content.</div>
+        <div class="perm-status granted">Granted</div>
+      </div>
+    </div>
+
+    <!-- APP ICON GENERATOR VIEW -->
+    <div id="icon-view" class="view-container">
+      <header>
+        <button class="icon-btn" id="close-icon-btn" title="Back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5"></path>
+            <path d="M12 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <h1 style="flex-grow: 1; text-align: center;">App Icon</h1>
+      </header>
+
+      <div class="icon-preview-wrap">
+        <canvas id="icon-canvas" width="512" height="512"></canvas>
+      </div>
+
+      <div class="icon-controls">
+        <div class="icon-label">Theme</div>
+        <div class="theme-row" id="theme-row"></div>
+
+        <div class="icon-label">Export Size (px)</div>
+        <div class="size-row">
+          <button class="size-btn active" data-size="512">512</button>
+          <button class="size-btn" data-size="256">256</button>
+          <button class="size-btn" data-size="1024">1024</button>
+        </div>
+
+        <button class="download-btn" id="download-icon-btn">⬇ Download PNG</button>
+        <button class="download-btn secondary" id="favicon-btn">Use as Browser Tab Icon</button>
+        <p class="icon-hint">Generated on-device in pure canvas — no external assets. Matches the Sleep Timer dark aesthetic.</p>
+      </div>
+    </div>
+
+    <!-- FAKE HOME SCREEN -->
+    <div id="home-screen" class="view-container">
+      <div id="widget-shell"><span id="shell-time">15:00</span></div>
+      <div id="floating-widget"><div class="widget-timer" id="widget-timer-text">15:00</div></div>
+    </div>
+  </div>
+
+  <!-- MOCK SYSTEM NAV BAR -->
+  <div id="system-navbar">
+    <button class="nav-btn" id="sys-back">◁</button>
+    <button class="nav-btn" id="sys-home">◯</button>
+    <button class="nav-btn" id="sys-recent">◻</button>
+  </div>
+
+</div>
+
+<script>
+  // Block programmatic scrolling triggers from playing ticks or waking sections on load
+  let ignoreInitialScroll = true;
+
+  // --- SYNTHESIZED HAPTIC TICK ---
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function playTick() {
+    if (!audioCtx || ignoreInitialScroll) return;
+    const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+    osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+  }
+  document.body.addEventListener('pointerdown', initAudio, { once: true });
+
+  // --- VIEWS & NAVIGATION ---
+  const appView = document.getElementById('app-view');
+  const permsView = document.getElementById('permissions-view');
+  const homeScreen = document.getElementById('home-screen');
+  
+  document.getElementById('open-settings-btn').addEventListener('click', () => {
+    appView.style.transform = 'translateX(-100%)';
+    permsView.style.transform = 'translateX(0)';
+  });
+
+  // --- INDEPENDENT WHEEL STATE ---
+  let activeMode = 'duration'; 
+  let isBatteryActive = false;
+  
+  const sectionDuration = document.getElementById('section-duration');
+  const sectionExact = document.getElementById('section-exact');
+  const sectionBattery = document.getElementById('section-battery');
+  const batteryLabel = document.getElementById('battery-label');
+
+  function setActiveTimeMode(mode) {
+    activeMode = mode;
+    sectionDuration.classList.toggle('active', mode === 'duration');
+    sectionExact.classList.toggle('active', mode === 'exact');
+  }
+
+  sectionDuration.addEventListener('pointerdown', () => setActiveTimeMode('duration'));
+  sectionExact.addEventListener('pointerdown', () => setActiveTimeMode('exact'));
+  
+  // Explicitly tie battery activation to touching the container (excluding initial JS scroll)
+  sectionBattery.addEventListener('pointerdown', (e) => {
+      if (e.target !== batteryLabel) {
+          isBatteryActive = true;
+          sectionBattery.classList.add('active');
+      }
+  });
+  sectionBattery.addEventListener('wheel', () => {
+      isBatteryActive = true;
+      sectionBattery.classList.add('active');
+  });
+
+  // Tap label to toggle off
+  batteryLabel.addEventListener('click', () => {
+      isBatteryActive = !isBatteryActive;
+      sectionBattery.classList.toggle('active', isBatteryActive);
+  });
+
+  const wheelDuration = document.getElementById('wheel-duration');
+  const wheelH = document.getElementById('wheel-h');
+  const wheelM = document.getElementById('wheel-m');
+  const wheelBattery = document.getElementById('wheel-battery');
+  
+  let selectedDuration = 15; 
+  let selectedHour = new Date().getHours();
+  let selectedMinute = new Date().getMinutes() + 15;
+  if (selectedMinute >= 60) {
+      selectedMinute -= 60;
+      selectedHour = (selectedHour + 1) % 24;
+  }
+  
+  let selectedBattery = 15; 
+  let actualCurrentBattery = 65; 
+
+  // --- POPULATE WHEELS WITH SPACERS ---
+  function createSpacers() {
+      let topSpacer = document.createElement('div');
+      topSpacer.className = 'wheel-spacer';
+      let bottomSpacer = document.createElement('div');
+      bottomSpacer.className = 'wheel-spacer';
+      return { top: topSpacer, bottom: bottomSpacer };
+  }
+
+  function populateNormalWheel(wheel, start, end, pad) {
+      let spacers = createSpacers();
+      wheel.appendChild(spacers.top);
+      for(let i = start; i <= end; i++) {
+        let div = document.createElement('div'); div.className = 'wheel-item'; 
+        div.innerText = pad ? i.toString().padStart(2, '0') : i;
+        wheel.appendChild(div);
+      }
+      wheel.appendChild(spacers.bottom);
+  }
+
+  populateNormalWheel(wheelDuration, 1, 120, false);
+  populateNormalWheel(wheelH, 0, 23, true);
+  populateNormalWheel(wheelM, 0, 59, true);
+
+  function populateBatteryWheel() {
+    let scrollPos = wheelBattery.scrollTop; 
+    wheelBattery.innerHTML = '';
+    
+    let spacers = createSpacers();
+    wheelBattery.appendChild(spacers.top);
+    
+    for(let i = 1; i <= 100; i++) {
+      let div = document.createElement('div'); div.className = 'wheel-item'; 
+      if (i === actualCurrentBattery) {
+        div.innerHTML = `${i}<span class="current-bat-tag">(Now)</span>`;
+      } else {
+        div.innerText = i;
+      }
+      wheelBattery.appendChild(div);
+    }
+    wheelBattery.appendChild(spacers.bottom);
+    
+    if (scrollPos > 0) wheelBattery.scrollTop = scrollPos;
+  }
+
+  // --- SCROLL LOGIC ---
+  function setupWheel(wheelElement, type) {
+    let lastIndex = -1;
+    wheelElement.addEventListener('scroll', () => {
+      const items = wheelElement.querySelectorAll('.wheel-item');
+      let center = wheelElement.scrollTop + (wheelElement.clientHeight / 2);
+      let newIndex = -1;
+
+      items.forEach((item, index) => {
+        const itemCenter = item.offsetTop + (item.clientHeight / 2);
+        if(Math.abs(center - itemCenter) < 25) {
+          item.style.color = '#fff'; item.style.fontWeight = 'bold'; item.style.transform = 'scale(1.1)';
+          newIndex = index;
+          if (type === 'duration') selectedDuration = index + 1;
+          else if (type === 'hour') selectedHour = index;
+          else if (type === 'minute') selectedMinute = index;
+          else if (type === 'battery') selectedBattery = index + 1;
+        } else {
+          item.style.color = 'var(--text-muted)'; item.style.fontWeight = '300'; item.style.transform = 'scale(1)';
+        }
+      });
+
+      if(newIndex !== -1 && newIndex !== lastIndex) {
+          if(lastIndex !== -1) playTick(); 
+          lastIndex = newIndex;
+          
+          if (!ignoreInitialScroll) {
+              if (type === 'duration') setActiveTimeMode('duration');
+              else if (type === 'hour' || type === 'minute') setActiveTimeMode('exact');
+              // Note: Battery activation moved entirely to manual pointer/wheel events above
+          }
+      }
+    });
+  }
+
+  setupWheel(wheelDuration, 'duration'); 
+  setupWheel(wheelH, 'hour'); 
+  setupWheel(wheelM, 'minute');
+  
+  // Set initial scroll positions
+  setTimeout(() => { 
+    wheelDuration.scrollTop = (selectedDuration - 1) * 50; 
+    wheelH.scrollTop = selectedHour * 50; 
+    wheelM.scrollTop = selectedMinute * 50; 
+    
+    // Battery Init & Setup
+    if (navigator.getBattery) {
+        navigator.getBattery().then(function(battery) {
+            actualCurrentBattery = Math.round(battery.level * 100);
+            populateBatteryWheel();
+            setupWheel(wheelBattery, 'battery');
+            setTimeout(() => { wheelBattery.scrollTop = (selectedBattery - 1) * 50; }, 50);
+            
+            battery.addEventListener('levelchange', () => {
+                actualCurrentBattery = Math.round(battery.level * 100);
+                populateBatteryWheel();
+            });
+        });
+    } else {
+        populateBatteryWheel(); 
+        setupWheel(wheelBattery, 'battery');
+        setTimeout(() => { wheelBattery.scrollTop = (selectedBattery - 1) * 50; }, 50);
+    }
+
+    // Unlock interactions after UI settles
+    setTimeout(() => { ignoreInitialScroll = false; }, 300);
+  }, 100);
+
+  // --- APP STATE & BACKGROUND TIMER ---
+  const widgetTimerText = document.getElementById('widget-timer-text');
+  let timerInterval;
+  let runningSeconds = 0;
+  let isTimerRunning = false;
+
+  function updateTimerDisplay(overrideText = null) {
+    if (overrideText !== null) {
+        widgetTimerText.innerText = overrideText;
+        return;
+    }
+    let h = Math.floor(runningSeconds / 3600); 
+    let m = Math.floor((runningSeconds % 3600) / 60); 
+    let s = runningSeconds % 60;
+    if (h > 0) widgetTimerText.innerText = `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    else widgetTimerText.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function triggerScreenOff(reason) {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+      updateTimerDisplay('OFF');
+  }
+
+  // --- SYSTEM NAV ACTION MAPPING ---
+  document.getElementById('sys-home').addEventListener('click', () => {
+    if (homeScreen.style.display === 'block') return; 
+    
+    if (activeMode === 'duration') {
+        runningSeconds = selectedDuration * 60;
+    } else {
+        let now = new Date(); let target = new Date();
+        target.setHours(selectedHour, selectedMinute, 0, 0);
+        if (target <= now) target.setDate(target.getDate() + 1);
+        runningSeconds = Math.floor((target - now) / 1000);
+    }
+    
+    updateTimerDisplay();
+    
+    appView.style.display = 'none';
+    permsView.style.transform = 'translateX(100%)';
+    homeScreen.style.display = 'block';
+    resetInactivityTimer();
+
+    isTimerRunning = true;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      // BATTERY CHECK 
+      if (isBatteryActive && actualCurrentBattery <= selectedBattery) {
+          triggerScreenOff('battery');
+          return;
+      }
+
+      // TIME CHECK
+      runningSeconds--;
+      
+      if (isExtendMode) {
+        baseRemainingSeconds--; 
+        let previewSecs = baseRemainingSeconds + tempAddedSeconds;
+        let h = Math.floor(previewSecs / 3600); 
+        let m = Math.floor((previewSecs % 3600) / 60); 
+        let s = previewSecs % 60;
+        if (h > 0) updateTimerDisplay(`${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+        else updateTimerDisplay(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      } else {
+        updateTimerDisplay();
+      }
+
+      if(runningSeconds <= 0) {
+          triggerScreenOff('time');
+      }
+    }, 1000);
+  });
+
+  document.getElementById('sys-back').addEventListener('click', () => {
+    if (iconView.style.transform === 'translateX(0px)') {
+        iconView.style.transform = 'translateX(100%)';
+        appView.style.transform = 'translateX(0)';
+    }
+    else if (permsView.style.transform === 'translateX(0px)') {
+        permsView.style.transform = 'translateX(100%)';
+        appView.style.transform = 'translateX(0)';
+    } 
+    else if (homeScreen.style.display === 'block') {
+        homeScreen.style.display = 'none';
+        appView.style.display = 'flex';
+        appView.style.transform = 'translateX(0)';
+        
+        if (isTimerRunning) {
+            let now = new Date();
+            now.setSeconds(now.getSeconds() + runningSeconds);
+            selectedHour = now.getHours();
+            selectedMinute = now.getMinutes();
+            
+            selectedDuration = Math.ceil(runningSeconds / 60);
+            if (selectedDuration < 1) selectedDuration = 1;
+            if (selectedDuration > 120) selectedDuration = 120;
+            
+            ignoreInitialScroll = true; // Block sync ticks while resetting views
+            wheelDuration.scrollTo({top: (selectedDuration - 1) * 50, behavior: 'smooth'});
+            wheelH.scrollTo({top: selectedHour * 50, behavior: 'smooth'});
+            wheelM.scrollTo({top: selectedMinute * 50, behavior: 'smooth'});
+            setTimeout(() => { ignoreInitialScroll = false; }, 300);
+        }
+    }
+  });
+
+  // --- FLOATING WIDGET (DOUBLE TAP TO EXTEND LOGIC) ---
+  const floatingWidget = document.getElementById('floating-widget');
+  const widgetShell = document.getElementById('widget-shell');
+  const shellTime = document.getElementById('shell-time');
+  let inactivityTimeout;
+
+  function resetInactivityTimer() {
+    floatingWidget.classList.remove('ghost'); 
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(() => {
+      if (!isDraggingWidget && !isExtendMode) floatingWidget.classList.add('ghost'); 
+    }, 5000); 
+  }
+
+  homeScreen.addEventListener('pointerdown', resetInactivityTimer);
+
+  let isDraggingWidget = false, isExtendMode = false;
+  let dragStartX = 0, dragStartY = 0, initialWidgetLeft = 0, initialWidgetTop = 0;
+  let baseRemainingSeconds = 0, tempAddedSeconds = 0, lastTapTime = 0; 
+
+  floatingWidget.addEventListener('pointerdown', (e) => {
+    if (!isTimerRunning) return; 
+    
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    const rect = floatingWidget.getBoundingClientRect();
+    const screenRect = document.getElementById('screen-content').getBoundingClientRect();
+    initialWidgetLeft = rect.left - screenRect.left; initialWidgetTop = rect.top - screenRect.top;
+
+    floatingWidget.setPointerCapture(e.pointerId);
+    resetInactivityTimer();
+
+    let currentTime = new Date().getTime();
+    if (currentTime - lastTapTime < 300) {
+      isExtendMode = true; isDraggingWidget = false;
+      baseRemainingSeconds = runningSeconds; tempAddedSeconds = 0;
+      floatingWidget.classList.add('no-transition');
+      
+      shellTime.innerText = widgetTimerText.innerText;
+      widgetShell.style.left = `${initialWidgetLeft}px`; widgetShell.style.top = `${initialWidgetTop}px`;
+      widgetShell.style.display = 'flex';
+      
+      floatingWidget.style.transform = 'scale(1.05)'; floatingWidget.style.cursor = 'e-resize';
+      lastTapTime = 0; 
+    } else {
+      isExtendMode = false; isDraggingWidget = false; lastTapTime = currentTime;
+    }
+  });
+
+  floatingWidget.addEventListener('pointermove', (e) => {
+    if (!isTimerRunning) return;
+    let deltaX = e.clientX - dragStartX; let deltaY = e.clientY - dragStartY;
+
+    if (!isExtendMode && !isDraggingWidget) {
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        isDraggingWidget = true; floatingWidget.classList.add('no-transition'); floatingWidget.style.cursor = 'grabbing';
+      }
+    }
+
+    if (isDraggingWidget) {
+      let newX = initialWidgetLeft + deltaX; let newY = initialWidgetTop + deltaY;
+      const screenRect = document.getElementById('screen-content').getBoundingClientRect();
+      if(newX < 0) newX = 0; if(newY < 0) newY = 0;
+      if(newX > screenRect.width - floatingWidget.offsetWidth) newX = screenRect.width - floatingWidget.offsetWidth;
+      if(newY > screenRect.height - floatingWidget.offsetHeight) newY = screenRect.height - floatingWidget.offsetHeight;
+      floatingWidget.style.left = `${newX}px`; floatingWidget.style.top = `${newY}px`;
+      
+    } else if (isExtendMode) {
+      if (deltaX < 0) deltaX = 0; 
+      const maxStretch = 160; let visualStretch = deltaX;
+      if (visualStretch > maxStretch) visualStretch = maxStretch + (deltaX - maxStretch) * 0.2; 
+      floatingWidget.style.transform = `scale(1.05) translateX(${visualStretch}px)`;
+      
+      let addedMins = Math.floor(deltaX / 10);
+      tempAddedSeconds = addedMins * 60;
+      
+      let previewSecs = baseRemainingSeconds + tempAddedSeconds;
+      let h = Math.floor(previewSecs / 3600); 
+      let m = Math.floor((previewSecs % 3600) / 60); 
+      let s = previewSecs % 60;
+      if (h > 0) updateTimerDisplay(`${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      else updateTimerDisplay(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+    }
+    resetInactivityTimer();
+  });
+
+  floatingWidget.addEventListener('pointerup', (e) => {
+    if (!isTimerRunning) return;
+    if (isExtendMode) {
+      runningSeconds = baseRemainingSeconds + tempAddedSeconds;
+      floatingWidget.classList.remove('no-transition');
+      floatingWidget.style.transform = 'scale(1) translateX(0px)';
+      floatingWidget.style.cursor = 'grab';
+      widgetShell.style.display = 'none';
+      isExtendMode = false;
+    }
+    if (isDraggingWidget) {
+      isDraggingWidget = false;
+      floatingWidget.classList.remove('no-transition');
+      floatingWidget.style.cursor = 'grab';
+    }
+    floatingWidget.releasePointerCapture(e.pointerId);
+    updateTimerDisplay();
+  });
+
+  // --- APP ICON GENERATOR ---
+  const iconView = document.getElementById('icon-view');
+  const iconCanvas = document.getElementById('icon-canvas');
+
+  const iconThemes = [
+    { id: 'midnight', name: 'Midnight', bgTop: '#232323', bgBottom: '#0c0c0c', moon: '#9aa3ad', ring: '#ffffff', accent: '#00e676', glow: 'rgba(0,230,118,0.30)' },
+    { id: 'ink',      name: 'Ink',      bgTop: '#1b1b1b', bgBottom: '#000000', moon: '#e6e6e6', ring: '#ffffff', accent: '#ffffff', glow: 'rgba(255,255,255,0.22)' },
+    { id: 'aurora',   name: 'Aurora',   bgTop: '#0f2233', bgBottom: '#050d16', moon: '#cfeefc', ring: '#e0f2fe', accent: '#38bdf8', glow: 'rgba(56,189,248,0.35)' },
+    { id: 'ember',    name: 'Ember',    bgTop: '#2b1210', bgBottom: '#0e0504', moon: '#ffe4cf', ring: '#ffd0bb', accent: '#ff7043', glow: 'rgba(255,112,67,0.35)' }
+  ];
+  let currentIconTheme = iconThemes[0];
+
+  function drawIcon(canvas, theme) {
+    const size = canvas.width;
+    const ctx = canvas.getContext('2d');
+    const s = size / 512;
+    ctx.clearRect(0, 0, size, size);
+
+    // 1. Rounded-square background
+    const radius = 118 * s;
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.arcTo(size, 0, size, size, radius);
+    ctx.arcTo(size, size, 0, size, radius);
+    ctx.arcTo(0, size, 0, 0, radius);
+    ctx.arcTo(0, 0, size, 0, radius);
+    ctx.closePath();
+    const bg = ctx.createLinearGradient(0, 0, size, size);
+    bg.addColorStop(0, theme.bgTop);
+    bg.addColorStop(1, theme.bgBottom);
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+
+    const cx = 256 * s, cy = 256 * s;
+
+    // 2. Center glow
+    const glow = ctx.createRadialGradient(cx, cy, 10 * s, cx, cy, 240 * s);
+    glow.addColorStop(0, theme.glow);
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, size, size);
+
+    // 3. Clock ring
+    const ringR = 152 * s, ringW = 15 * s;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+    ctx.lineWidth = ringW;
+    ctx.strokeStyle = theme.ring;
+    ctx.shadowColor = theme.glow;
+    ctx.shadowBlur = 28 * s;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // 4. Subtle ticks at 12/3/6/9
+    ctx.strokeStyle = theme.ring;
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = 4 * s;
+    ctx.lineCap = 'round';
+    [0, 90, 180, 270].forEach(deg => {
+      const a = deg * Math.PI / 180;
+      const r1 = ringR - ringW / 2 - 7 * s;
+      const r2 = ringR - ringW / 2 + 7 * s;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+
+    // 5. Crescent moon (drawn on an off-screen layer to punch a clean hole)
+    const layer = document.createElement('canvas');
+    layer.width = size; layer.height = size;
+    const lc = layer.getContext('2d');
+    const moonCx = cx - 6 * s, moonCy = cy + 12 * s, moonR = 82 * s;
+    lc.beginPath();
+    lc.arc(moonCx, moonCy, moonR, 0, Math.PI * 2);
+    lc.fillStyle = '#fff';
+    lc.fill();
+    lc.globalCompositeOperation = 'destination-out';
+    lc.beginPath();
+    lc.arc(moonCx + 46 * s, moonCy - 26 * s, moonR, 0, Math.PI * 2);
+    lc.fill();
+    lc.globalCompositeOperation = 'source-atop';
+    const mg = lc.createRadialGradient(moonCx - 30 * s, moonCy - 30 * s, 8 * s, moonCx, moonCy, moonR);
+    mg.addColorStop(0, '#ffffff');
+    mg.addColorStop(1, theme.moon);
+    lc.fillStyle = mg;
+    lc.fillRect(0, 0, size, size);
+    lc.globalCompositeOperation = 'source-over';
+    ctx.drawImage(layer, 0, 0);
+
+    // 6. Timer hand pointing at 12 o'clock
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = theme.accent;
+    ctx.lineWidth = 15 * s;
+    ctx.shadowColor = theme.glow;
+    ctx.shadowBlur = 18 * s;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + 10 * s);
+    ctx.lineTo(cx, cy - (ringR - ringW - 6 * s));
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Hub dot
+    ctx.fillStyle = theme.accent;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 10 * s, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function renderIconPreview() {
+    drawIcon(iconCanvas, currentIconTheme);
+  }
+
+  function applyFavicon(canvas) {
+    let link = document.querySelector('link[rel="icon"]');
+    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+    link.href = canvas.toDataURL('image/png');
+  }
+
+  function downloadIcon(size) {
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    drawIcon(c, currentIconTheme);
+    const a = document.createElement('a');
+    a.download = `sleep-timer-icon-${size}.png`;
+    a.href = c.toDataURL('image/png');
+    a.click();
+  }
+
+  // Build theme swatches
+  const themeRow = document.getElementById('theme-row');
+  iconThemes.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-btn' + (i === 0 ? ' active' : '');
+    btn.title = t.name;
+    const sw = document.createElement('span');
+    sw.className = 'theme-swatch';
+    sw.style.background = `linear-gradient(135deg, ${t.bgTop}, ${t.bgBottom})`;
+    btn.appendChild(sw);
+    btn.addEventListener('click', () => {
+      currentIconTheme = t;
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderIconPreview();
+    });
+    themeRow.appendChild(btn);
+  });
+
+  // Size selector
+  const sizeBtns = document.querySelectorAll('.size-btn');
+  sizeBtns.forEach(btn => btn.addEventListener('click', () => {
+    sizeBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }));
+
+  document.getElementById('download-icon-btn').addEventListener('click', () => {
+    const active = document.querySelector('.size-btn.active');
+    downloadIcon(parseInt(active.dataset.size, 10));
+  });
+
+  document.getElementById('favicon-btn').addEventListener('click', () => {
+    applyFavicon(iconCanvas);
+    const b = document.getElementById('favicon-btn');
+    b.innerText = 'Favicon Applied ✓';
+    setTimeout(() => { b.innerText = 'Use as Browser Tab Icon'; }, 1500);
+  });
+
+  // Open / close icon view
+  document.getElementById('open-icon-btn').addEventListener('click', () => {
+    renderIconPreview();
+    appView.style.transform = 'translateX(-100%)';
+    iconView.style.transform = 'translateX(0)';
+  });
+  document.getElementById('close-icon-btn').addEventListener('click', () => {
+    iconView.style.transform = 'translateX(100%)';
+    appView.style.transform = 'translateX(0)';
+  });
+
+  // Generate a default icon on load and set it as the tab icon
+  (function seedIcon() {
+    const seed = document.createElement('canvas');
+    seed.width = 512; seed.height = 512;
+    drawIcon(seed, iconThemes[0]);
+    applyFavicon(seed);
+  })();
+</script>
+</body>
+</html>
